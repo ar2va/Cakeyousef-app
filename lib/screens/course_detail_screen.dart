@@ -416,24 +416,9 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                         icon: Icons.info_outline_rounded,
                       ),
                       const SizedBox(height: 10),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppColors.card,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: AppColors.cardShadow,
-                        ),
-                        child: Text(
-                          course.description ??
-                              'توضیحات این دوره به‌زودی تکمیل می‌شود.',
-                          style: GoogleFonts.vazirmatn(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w500,
-                            height: 1.9,
-                            color: AppColors.dark700,
-                          ),
-                        ),
+                      _ExpandableCourseDescription(
+                        text: course.description ??
+                            'توضیحات این دوره به‌زودی تکمیل می‌شود.',
                       ),
 
                       // What you'll learn
@@ -845,6 +830,127 @@ class _VDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(width: 1, height: 36, color: AppColors.warm200);
+  }
+}
+
+/// Collapsible course description: 3 lines by default, expand on tap.
+class _ExpandableCourseDescription extends StatefulWidget {
+  final String text;
+
+  const _ExpandableCourseDescription({required this.text});
+
+  @override
+  State<_ExpandableCourseDescription> createState() =>
+      _ExpandableCourseDescriptionState();
+}
+
+class _ExpandableCourseDescriptionState
+    extends State<_ExpandableCourseDescription> {
+  static const _collapsedLines = 3;
+
+  bool _expanded = false;
+  bool? _overflows;
+
+  TextStyle get _style => GoogleFonts.vazirmatn(
+        fontSize: 13.5,
+        fontWeight: FontWeight.w500,
+        height: 1.9,
+        color: AppColors.dark700,
+      );
+
+  void _measure(double maxWidth) {
+    final painter = TextPainter(
+      text: TextSpan(text: widget.text, style: _style),
+      textDirection: TextDirection.rtl,
+      maxLines: _collapsedLines,
+    )..layout(maxWidth: maxWidth);
+    final overflows = painter.didExceedMaxLines;
+    if (_overflows != overflows) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _overflows = overflows);
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: AppColors.cardShadow,
+        border: Border.all(
+          color: AppColors.warm200.withValues(alpha: 0.45),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          LayoutBuilder(
+            builder: (context, constraints) {
+              _measure(constraints.maxWidth);
+              return AnimatedSize(
+                duration: const Duration(milliseconds: 280),
+                curve: Curves.easeOutCubic,
+                alignment: Alignment.topCenter,
+                child: Text(
+                  widget.text,
+                  maxLines: _expanded ? null : _collapsedLines,
+                  overflow:
+                      _expanded ? TextOverflow.visible : TextOverflow.ellipsis,
+                  style: _style,
+                ),
+              );
+            },
+          ),
+          if (_overflows == true) ...[
+            const SizedBox(height: 8),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: Material(
+                color: AppColors.gold50,
+                borderRadius: BorderRadius.circular(999),
+                child: InkWell(
+                  onTap: () => setState(() => _expanded = !_expanded),
+                  borderRadius: BorderRadius.circular(999),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 7,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _expanded ? 'نمایش کمتر' : 'نمایش بیشتر',
+                          style: GoogleFonts.vazirmatn(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.gold700,
+                          ),
+                        ),
+                        const SizedBox(width: 2),
+                        AnimatedRotation(
+                          turns: _expanded ? 0.5 : 0,
+                          duration: const Duration(milliseconds: 220),
+                          child: Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            size: 18,
+                            color: AppColors.gold700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 }
 

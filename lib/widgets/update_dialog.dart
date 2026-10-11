@@ -5,6 +5,7 @@ import '../services/version_checker.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_fonts.dart';
 import '../utils/format_utils.dart';
+import 'store_brand_icons.dart';
 
 Future<void> showUpdateDialog(
   BuildContext context, {
@@ -51,7 +52,7 @@ class _UpdateDialogBodyState extends State<_UpdateDialogBody> {
   double? _progress;
   String? _error;
 
-  Future<void> _update() async {
+  Future<void> _autoUpdate() async {
     if (_busy) return;
     setState(() {
       _busy = true;
@@ -107,23 +108,43 @@ class _UpdateDialogBodyState extends State<_UpdateDialogBody> {
               color: AppColors.dark700,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Text(
-            'نسخه فعلی: $current',
+            'نسخه فعلی: $current  |  جدید: $latest',
             style: AppFonts.vazirmatn(
-              fontSize: 12.5,
+              fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: AppColors.dark700,
+              color: AppColors.warm400,
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            'نسخه جدید: $latest',
-            style: AppFonts.vazirmatn(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w800,
-              color: AppColors.gold700,
+          const SizedBox(height: 16),
+          _UpdateOptionTile(
+            enabled: false,
+            icon: const GooglePlayIcon(size: 30),
+            title: 'بروزرسانی از گوگل پلی',
+            subtitle: 'به‌زودی فعال می‌شود',
+            onTap: null,
+          ),
+          const SizedBox(height: 8),
+          _UpdateOptionTile(
+            enabled: false,
+            icon: const BazaarIcon(size: 30),
+            title: 'بروزرسانی از بازار',
+            subtitle: 'به‌زودی فعال می‌شود',
+            onTap: null,
+          ),
+          const SizedBox(height: 8),
+          _UpdateOptionTile(
+            enabled: !_busy,
+            icon: Icon(
+              Icons.system_update_alt_rounded,
+              size: 28,
+              color: AppColors.gold600,
             ),
+            title: 'بروزرسانی خودکار',
+            subtitle: _busy ? 'در حال دانلود…' : 'دانلود مستقیم و نصب',
+            emphasized: true,
+            onTap: _busy ? null : _autoUpdate,
           ),
           if (_progress != null) ...[
             const SizedBox(height: 14),
@@ -153,7 +174,6 @@ class _UpdateDialogBodyState extends State<_UpdateDialogBody> {
           ],
         ],
       ),
-      actionsAlignment: MainAxisAlignment.spaceBetween,
       actions: [
         if (!widget.force)
           TextButton(
@@ -167,24 +187,104 @@ class _UpdateDialogBodyState extends State<_UpdateDialogBody> {
               ),
             ),
           ),
-        FilledButton(
-          style: FilledButton.styleFrom(
-            backgroundColor: AppColors.gold500,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          onPressed: _busy ? null : _update,
-          child: Text(
-            _busy ? 'لطفاً صبر کنید…' : 'دانلود و بروزرسانی',
-            style: AppFonts.vazirmatn(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
       ],
+    );
+  }
+}
+
+class _UpdateOptionTile extends StatelessWidget {
+  const _UpdateOptionTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.enabled,
+    this.emphasized = false,
+    this.onTap,
+  });
+
+  final Widget icon;
+  final String title;
+  final String subtitle;
+  final bool enabled;
+  final bool emphasized;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = emphasized
+        ? AppColors.gold50
+        : AppColors.warm100.withValues(alpha: enabled ? 1 : 0.55);
+    final border = emphasized
+        ? AppColors.gold300
+        : AppColors.warm200.withValues(alpha: enabled ? 1 : 0.5);
+
+    final content = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 36,
+            height: 36,
+            child: Center(child: icon),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: AppFonts.vazirmatn(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w800,
+                    color: enabled
+                        ? AppColors.dark900
+                        : AppColors.dark700.withValues(alpha: 0.55),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: AppFonts.vazirmatn(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: enabled
+                        ? AppColors.warm400
+                        : AppColors.warm400.withValues(alpha: 0.55),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (enabled)
+            Icon(Icons.chevron_left_rounded, color: AppColors.gold600)
+          else
+            Icon(
+              Icons.lock_outline_rounded,
+              size: 18,
+              color: AppColors.warm400.withValues(alpha: 0.55),
+            ),
+        ],
+      ),
+    );
+
+    // Keep brand icon colors, but fade the whole row so it reads as disabled.
+    final faded = enabled ? content : Opacity(opacity: 0.42, child: content);
+
+    if (!enabled || onTap == null) return faded;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: faded,
+      ),
     );
   }
 }

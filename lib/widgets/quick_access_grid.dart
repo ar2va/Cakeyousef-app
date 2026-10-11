@@ -176,44 +176,27 @@ class _AccessCardState extends State<_AccessCard> {
           height: 118,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(22),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: dark
-                  ? [
-                      AppColors.card,
-                      AppColors.creamDark,
-                    ]
-                  : [
-                      Colors.white,
-                      item.bgColor.withValues(alpha: 0.55),
-                    ],
-            ),
+            color: AppColors.card,
             border: Border.all(
-              color: item.iconColor.withValues(alpha: dark ? 0.28 : 0.18),
+              color: AppColors.warm200.withValues(alpha: 0.55),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: item.iconColor.withValues(alpha: dark ? 0.12 : 0.1),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-              ),
-            ],
+            boxShadow: AppColors.cardShadow,
           ),
+          clipBehavior: Clip.antiAlias,
           child: Stack(
             children: [
               Positioned(
-                top: -18,
-                left: -14,
+                top: -20,
+                right: -16,
                 child: IgnorePointer(
                   child: Container(
-                    width: 70,
-                    height: 70,
+                    width: 72,
+                    height: 72,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
                         colors: [
-                          item.iconColor.withValues(alpha: 0.16),
+                          item.iconColor.withValues(alpha: dark ? 0.18 : 0.14),
                           Colors.transparent,
                         ],
                       ),
@@ -226,50 +209,23 @@ class _AccessCardState extends State<_AccessCard> {
                 child: Column(
                   children: [
                     Expanded(
-                      child: Container(
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: dark
-                                ? [
-                                    AppColors.creamDark,
-                                    item.iconColor.withValues(alpha: 0.12),
-                                  ]
-                                : [
-                                    Colors.white.withValues(alpha: 0.9),
-                                    item.bgColor,
-                                  ],
-                          ),
-                          border: Border.all(
-                            color: Colors.white.withValues(
-                              alpha: dark ? 0.04 : 0.7,
-                            ),
-                          ),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: item.artwork != null
-                            ? Padding(
-                                padding: const EdgeInsets.all(8),
-                                child: Image.asset(
-                                  item.artwork!,
-                                  fit: BoxFit.contain,
-                                  cacheWidth: 160,
-                                  errorBuilder: (_, __, ___) => Icon(
-                                    item.icon,
-                                    color: item.iconColor,
-                                    size: 30,
-                                  ),
-                                ),
-                              )
-                            : Icon(
+                      child: item.artwork != null
+                          ? Image.asset(
+                              item.artwork!,
+                              fit: BoxFit.contain,
+                              cacheWidth: 160,
+                              filterQuality: FilterQuality.medium,
+                              errorBuilder: (_, __, ___) => Icon(
                                 item.icon,
                                 color: item.iconColor,
-                                size: 30,
+                                size: 34,
                               ),
-                      ),
+                            )
+                          : Icon(
+                              item.icon,
+                              color: item.iconColor,
+                              size: 34,
+                            ),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -293,4 +249,3 @@ class _AccessCardState extends State<_AccessCard> {
     );
   }
 }
-

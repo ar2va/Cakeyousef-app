@@ -37,6 +37,13 @@ const _links = <_SocialLink>[
     gradient: [Color(0xFFFF4E45), Color(0xFFCC0000)],
   ),
   _SocialLink(
+    title: 'آپارات',
+    handle: 'Cakeyousef',
+    url: 'https://www.aparat.com/Cakeyousef',
+    icon: Icons.videocam_rounded,
+    gradient: [Color(0xFFED145B), Color(0xFFC40D4A)],
+  ),
+  _SocialLink(
     title: 'تلگرام',
     handle: '@cakeyousef_com',
     url: 'https://t.me/cakeyousef_com',
@@ -118,15 +125,21 @@ class SocialLinksSection extends StatelessWidget {
             ),
             child: Column(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    for (final item in _links)
-                      _SocialChip(
+                SizedBox(
+                  height: 88,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: _links.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      final item = _links[index];
+                      return _SocialChip(
                         item: item,
                         onTap: () => _open(item.url),
-                      ),
-                  ],
+                      );
+                    },
+                  ),
                 ),
                 const SizedBox(height: 14),
                 for (var i = 0; i < _links.length; i++) ...[

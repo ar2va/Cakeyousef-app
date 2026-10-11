@@ -13,11 +13,19 @@ class ProductsRepository extends ChangeNotifier {
 
   List<ShopProductDto> products = const [];
   List<String> categories = const ['همه'];
+  String selectedCategory = 'همه';
   bool loading = false;
   String? error;
   bool _fromApi = false;
 
   bool get hasData => products.isNotEmpty;
+
+  void selectCategory(String category) {
+    final next = category.trim().isEmpty ? 'همه' : category.trim();
+    if (selectedCategory == next) return;
+    selectedCategory = next;
+    notifyListeners();
+  }
 
   static const int homePreviewCount = 8;
 
@@ -37,11 +45,15 @@ class ProductsRepository extends ChangeNotifier {
       if (remote.products.isNotEmpty) {
         products = remote.products;
         categories = remote.categories;
+        if (!categories.contains(selectedCategory)) {
+          selectedCategory = 'همه';
+        }
         _fromApi = true;
         error = null;
       } else if (!_fromApi) {
         products = const [];
         categories = const ['همه'];
+        selectedCategory = 'همه';
         error = 'محصولی یافت نشد';
       }
     } on ApiException catch (e) {
@@ -49,6 +61,7 @@ class ProductsRepository extends ChangeNotifier {
       if (!_fromApi) {
         products = const [];
         categories = const ['همه'];
+        selectedCategory = 'همه';
       }
     } catch (e) {
       debugPrint('Products load failed: $e');
@@ -56,6 +69,7 @@ class ProductsRepository extends ChangeNotifier {
       if (!_fromApi) {
         products = const [];
         categories = const ['همه'];
+        selectedCategory = 'همه';
       }
     } finally {
       loading = false;

@@ -3,9 +3,10 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../models/catalog_models.dart';
 import '../state/products_repository.dart';
-import '../utils/payment_helper.dart';
 import '../theme/app_colors.dart';
+import '../utils/app_nav.dart';
 import '../utils/network_image.dart';
+import '../utils/payment_helper.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final ShopProductDto product;
@@ -39,6 +40,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     } finally {
       if (mounted) setState(() => _loadingDetail = false);
     }
+  }
+
+  void _openCategory(String category) {
+    final cat = category.trim();
+    if (cat.isEmpty) return;
+    ProductsRepository.instance.selectCategory(cat);
+    // Capture before pop — detail context is disposed after popUntil.
+    final goToShop = MainTabScope.maybeOf(context)?.goToTab;
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    goToShop?.call(3);
   }
 
   @override
@@ -103,22 +114,41 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           children: [
                             Row(
                               children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
+                                if (product.category.trim().isNotEmpty)
+                                  Material(
                                     color: Colors.white.withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Text(
-                                    product.category,
-                                    style: GoogleFonts.vazirmatn(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 11,
+                                    child: InkWell(
+                                      onTap: () => _openCategory(product.category),
+                                      borderRadius: BorderRadius.circular(10),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 5,
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              product.category,
+                                              style: GoogleFonts.vazirmatn(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w800,
+                                                fontSize: 11,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Icon(
+                                              Icons.chevron_left_rounded,
+                                              size: 16,
+                                              color: Colors.white
+                                                  .withValues(alpha: 0.9),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ),
                                 if (!product.inStock) ...[
                                   const SizedBox(width: 8),
                                   Container(

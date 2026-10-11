@@ -16,7 +16,6 @@ class ShopScreen extends StatefulWidget {
 
 class _ShopScreenState extends State<ShopScreen> {
   final _repo = ProductsRepository.instance;
-  String _category = 'همه';
 
   @override
   void initState() {
@@ -34,8 +33,8 @@ class _ShopScreenState extends State<ShopScreen> {
   void _onRepo() {
     if (!mounted) return;
     setState(() {
-      if (!_repo.categories.contains(_category)) {
-        _category = 'همه';
+      if (!_repo.categories.contains(_repo.selectedCategory)) {
+        _repo.selectCategory('همه');
       }
     });
   }
@@ -52,7 +51,8 @@ class _ShopScreenState extends State<ShopScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final items = _repo.filtered(_category);
+    final category = _repo.selectedCategory;
+    final items = _repo.filtered(category);
     final categories = _repo.categories;
 
     return Column(
@@ -111,9 +111,9 @@ class _ShopScreenState extends State<ShopScreen> {
             separatorBuilder: (_, __) => const SizedBox(width: 8),
             itemBuilder: (context, i) {
               final cat = categories[i];
-              final selected = cat == _category;
+              final selected = cat == category;
               return GestureDetector(
-                onTap: () => setState(() => _category = cat),
+                onTap: () => _repo.selectCategory(cat),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
