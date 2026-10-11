@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../data/local_locations.dart';
 import '../models/account_models.dart';
 import '../state/auth_session.dart';
-import '../data/local_locations.dart';
 import '../theme/app_colors.dart';
-import '../widgets/auth_sheet.dart';
 import '../utils/network_image.dart';
+import '../widgets/auth_sheet.dart';
+import 'my_courses_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -688,51 +689,64 @@ class _MyCoursesCard extends StatelessWidget {
       return const _EmptyBox(text: 'هنوز دوره‌ای خریداری نکرده‌اید.');
     }
     return Column(
-      children: courses
-          .map(
-            (c) => Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
+      children: [
+        ...courses.map(
+          (c) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Material(
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(16),
+              child: InkWell(
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: AppColors.cardShadow,
-              ),
-              child: Row(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: SizedBox(
-                      width: 44,
-                      height: 44,
-                      child: c.imageUrl.isNotEmpty
-                          ? AppNetworkImage(
-                              url: c.imageUrl,
-                              width: 44,
-                              height: 44,
-                            )
-                          : ColoredBox(
-                              color: AppColors.gold50,
-                              child: Icon(Icons.school_outlined,
-                                  color: AppColors.gold600),
-                            ),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const MyCoursesScreen(),
                     ),
+                  );
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: SizedBox(
+                          width: 44,
+                          height: 44,
+                          child: c.imageUrl.isNotEmpty
+                              ? AppNetworkImage(
+                                  url: c.imageUrl,
+                                  width: 44,
+                                  height: 44,
+                                )
+                              : ColoredBox(
+                                  color: AppColors.gold50,
+                                  child: Icon(Icons.school_outlined,
+                                      color: AppColors.gold600),
+                                ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          c.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.vazirmatn(
+                              fontWeight: FontWeight.w800, fontSize: 13),
+                        ),
+                      ),
+                      Icon(Icons.chevron_left_rounded,
+                          color: AppColors.warm400, size: 20),
+                    ],
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      c.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.vazirmatn(
-                          fontWeight: FontWeight.w800, fontSize: 13),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
-          )
-          .toList(),
+          ),
+        ),
+      ],
     );
   }
 }

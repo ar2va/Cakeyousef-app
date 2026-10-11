@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../config/site_config.dart';
 import '../models/models.dart';
 import '../state/courses_repository.dart';
 import '../theme/app_colors.dart';
 import '../utils/format_utils.dart';
 import '../utils/network_image.dart';
 import '../utils/payment_helper.dart';
+import '../utils/share_helper.dart';
 import '../widgets/course_video_player.dart';
 
 class CourseDetailScreen extends StatefulWidget {
@@ -100,10 +102,20 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
     }
   }
 
+  Future<void> _share() async {
+    final key = course.slug?.isNotEmpty == true ? course.slug : course.id;
+    await shareCourse(
+      title: course.title,
+      slug: key,
+      fallbackUrl: course.siteUrl,
+    );
+  }
+
   Future<void> _openSite() async {
-    final raw = course.siteUrl ?? '';
-    if (raw.isEmpty) return;
-    final uri = Uri.parse(Uri.encodeFull(raw));
+    final key = course.slug?.isNotEmpty == true ? course.slug : course.id;
+    final raw = SiteConfig.courseShareUrl(key);
+    final uri = Uri.tryParse(raw);
+    if (uri == null) return;
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -186,7 +198,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                         const Spacer(),
                         _RoundIconButton(
                           icon: Icons.share_rounded,
-                          onTap: _openSite,
+                          onTap: _share,
                           dark: false,
                         ),
                       ],
@@ -558,7 +570,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                                         ),
                                       ),
                                       Text(
-                                        'cakeyousef.ir',
+                                        Uri.parse(SiteConfig.siteUrl).host,
                                         style: GoogleFonts.vazirmatn(
                                           fontSize: 11,
                                           color: AppColors.warm400,

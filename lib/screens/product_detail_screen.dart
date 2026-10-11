@@ -7,6 +7,7 @@ import '../theme/app_colors.dart';
 import '../utils/app_nav.dart';
 import '../utils/network_image.dart';
 import '../utils/payment_helper.dart';
+import '../utils/share_helper.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final ShopProductDto product;
@@ -52,6 +53,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     goToShop?.call(3);
   }
 
+  Future<void> _share() {
+    return shareProduct(
+      title: _product.title,
+      id: _product.id,
+      fallbackUrl: _product.siteUrl,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final product = _product;
@@ -79,6 +88,28 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     ),
                   ),
                 ),
+                actions: [
+                  Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Material(
+                      color: Colors.black45,
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: _share,
+                        child: const SizedBox(
+                          width: 40,
+                          height: 40,
+                          child: Icon(
+                            Icons.share_rounded,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
                 flexibleSpace: FlexibleSpaceBar(
                   background: Stack(
                     fit: StackFit.expand,

@@ -4,6 +4,7 @@ import '../models/models.dart';
 import '../screens/about_screen.dart';
 import '../screens/color_mixer_screen.dart';
 import '../screens/material_calculator_screen.dart';
+import '../screens/my_courses_screen.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_fonts.dart';
 import '../utils/app_nav.dart';
@@ -64,7 +65,13 @@ class QuickAccessGrid extends StatelessWidget {
       return;
     }
     if (item.title == 'دوره‌های من') {
-      MainTabScope.go(context, 1);
+      Navigator.of(context).push(
+        PageRouteBuilder(
+          pageBuilder: (_, __, ___) => const MyCoursesScreen(),
+          transitionsBuilder: (_, animation, __, child) =>
+              FadeTransition(opacity: animation, child: child),
+        ),
+      );
       return;
     }
     if (item.title == 'پشتیبانی') {
