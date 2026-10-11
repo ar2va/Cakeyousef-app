@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -27,15 +29,37 @@ class CourseVideoPlayer extends StatefulWidget {
   State<CourseVideoPlayer> createState() => _CourseVideoPlayerState();
 }
 
-class _CourseVideoPlayerState extends State<CourseVideoPlayer> {
+class _CourseVideoPlayerState extends State<CourseVideoPlayer>
+    with WidgetsBindingObserver {
+  static const _rotatable = [
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+  ];
+  static const _landscape = [
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+  ];
+
+  /// Players overlap briefly when switching lessons (new initState runs
+  /// before the old dispose), so rotation is unlocked by reference count.
+  static int _activePlayers = 0;
+
   VideoPlayerController? _video;
   ChewieController? _chewie;
   String? _error;
   bool _loading = true;
 
+  bool _wasFullScreen = false;
+  bool _fullScreenFromRotation = false;
+  bool _suppressAutoUntilPortrait = false;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _activePlayers++;
+    SystemChrome.setPreferredOrientations(_rotatable);
     _init(widget.url);
   }
 
@@ -78,6 +102,13 @@ class _CourseVideoPlayerState extends State<CourseVideoPlayer> {
         allowFullScreen: true,
         allowMuting: true,
         allowPlaybackSpeedChanging: true,
+        playbackSpeeds: _kSpeeds,
+        optionsTranslation: OptionsTranslation(
+          playbackSpeedButtonText: 'سرعت پخش',
+          subtitlesButtonText: 'زیرنویس',
+          cancelButtonText: 'انصراف',
+        ),
+        customControls: const _ControlsWithSpeed(),
         showControlsOnInitialize: true,
         materialProgressColors: ChewieProgressColors(
           playedColor: AppColors.gold500,
@@ -93,22 +124,19 @@ class _CourseVideoPlayerState extends State<CourseVideoPlayer> {
         ),
         placeholder: Container(color: AppColors.dark900),
         autoInitialize: true,
-        deviceOrientationsOnEnterFullScreen: const [
-          DeviceOrientation.landscapeLeft,
-          DeviceOrientation.landscapeRight,
-          DeviceOrientation.portraitUp,
-        ],
-        deviceOrientationsAfterFullScreen: const [
-          DeviceOrientation.portraitUp,
-        ],
+        deviceOrientationsOnEnterFullScreen: _landscape,
+        deviceOrientationsAfterFullScreen: _rotatable,
         errorBuilder: (_, message) => _ErrorPane(message: message),
       );
       video.addListener(_onVideoTick);
+      chewie.addListener(_onFullScreenChanged);
+      _wasFullScreen = false;
       setState(() {
         _video = video;
         _chewie = chewie;
         _loading = false;
       });
+      WidgetsBinding.instance.addPostFrameCallback((_) => _syncOrientation());
     } catch (e) {
       await video.dispose();
       if (!mounted) return;
@@ -130,8 +158,55 @@ class _CourseVideoPlayerState extends State<CourseVideoPlayer> {
     }
   }
 
+  void _onFullScreenChanged() {
+    final c = _chewie;
+    if (c == null || c.isFullScreen == _wasFullScreen) return;
+    _wasFullScreen = c.isFullScreen;
+
+    if (c.isFullScreen) {
+      if (_fullScreenFromRotation) {
+        // Chewie locks landscape on enter; keep the sensor free so turning
+        // the phone back upright exits fullscreen.
+        scheduleMicrotask(
+          () => SystemChrome.setPreferredOrientations(_rotatable),
+        );
+      }
+    } else {
+      _fullScreenFromRotation = false;
+      if (_isLandscape) _suppressAutoUntilPortrait = true;
+    }
+  }
+
+  bool get _isLandscape {
+    final views = WidgetsBinding.instance.platformDispatcher.views;
+    if (views.isEmpty) return false;
+    final size = views.first.physicalSize;
+    return size.width > size.height;
+  }
+
+  @override
+  void didChangeMetrics() {
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncOrientation());
+  }
+
+  void _syncOrientation() {
+    final c = _chewie;
+    if (!mounted || c == null) return;
+
+    if (!_isLandscape) {
+      _suppressAutoUntilPortrait = false;
+      if (c.isFullScreen && _fullScreenFromRotation) c.exitFullScreen();
+      return;
+    }
+    if (!c.isFullScreen && !_suppressAutoUntilPortrait) {
+      _fullScreenFromRotation = true;
+      c.enterFullScreen();
+    }
+  }
+
   Future<void> _disposePlayers() async {
     _video?.removeListener(_onVideoTick);
+    _chewie?.removeListener(_onFullScreenChanged);
     _chewie?.dispose();
     await _video?.dispose();
     _chewie = null;
@@ -140,6 +215,14 @@ class _CourseVideoPlayerState extends State<CourseVideoPlayer> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _activePlayers--;
+    if (_activePlayers <= 0) {
+      _activePlayers = 0;
+      SystemChrome.setPreferredOrientations(const [
+        DeviceOrientation.portraitUp,
+      ]);
+    }
     _disposePlayers();
     super.dispose();
   }
@@ -198,6 +281,260 @@ class _CourseVideoPlayerState extends State<CourseVideoPlayer> {
                 ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+const _kSpeeds = <double>[0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+
+String _speedLabel(double speed) {
+  final text = speed == speed.roundToDouble()
+      ? speed.toStringAsFixed(0)
+      : speed.toString();
+  return '$text×';
+}
+
+/// Material controls plus an always-reachable speed button; shown inline
+/// and in fullscreen because Chewie reuses `customControls` for both.
+class _ControlsWithSpeed extends StatefulWidget {
+  const _ControlsWithSpeed();
+
+  @override
+  State<_ControlsWithSpeed> createState() => _ControlsWithSpeedState();
+}
+
+class _ControlsWithSpeedState extends State<_ControlsWithSpeed> {
+  bool _visible = true;
+  Timer? _hideTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _showTemporarily();
+  }
+
+  @override
+  void dispose() {
+    _hideTimer?.cancel();
+    super.dispose();
+  }
+
+  void _showTemporarily() {
+    _hideTimer?.cancel();
+    if (!_visible) setState(() => _visible = true);
+    _hideTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _visible = false);
+    });
+  }
+
+  Future<void> _pickSpeed(VideoPlayerController video) async {
+    _hideTimer?.cancel();
+    final current = video.value.playbackSpeed;
+    final chosen = await showModalBottomSheet<double>(
+      context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      backgroundColor: AppColors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => _SpeedSheet(current: current),
+    );
+    if (chosen != null) await video.setPlaybackSpeed(chosen);
+    if (mounted) _showTemporarily();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final chewie = ChewieController.of(context);
+    final video = chewie.videoPlayerController;
+    final full = chewie.isFullScreen;
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (_) => _showTemporarily(),
+      child: Stack(
+        children: [
+          const MaterialControls(),
+          Positioned(
+            top: 10,
+            left: 10,
+            child: SafeArea(
+              top: full,
+              left: full,
+              right: false,
+              bottom: false,
+              child: AnimatedOpacity(
+                opacity: _visible ? 1 : 0,
+                duration: const Duration(milliseconds: 220),
+                child: IgnorePointer(
+                  ignoring: !_visible,
+                  child: ValueListenableBuilder<VideoPlayerValue>(
+                    valueListenable: video,
+                    builder: (context, value, _) {
+                      final speed = value.playbackSpeed;
+                      final changed = speed != 1;
+                      return Material(
+                        color: changed
+                            ? AppColors.gold500
+                            : Colors.black.withValues(alpha: 0.5),
+                        shape: StadiumBorder(
+                          side: BorderSide(
+                            color: Colors.white.withValues(alpha: 0.35),
+                          ),
+                        ),
+                        child: InkWell(
+                          customBorder: const StadiumBorder(),
+                          onTap: () => _pickSpeed(video),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.speed_rounded,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _speedLabel(speed),
+                                  textDirection: TextDirection.ltr,
+                                  style: GoogleFonts.vazirmatn(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SpeedSheet extends StatelessWidget {
+  final double current;
+
+  const _SpeedSheet({required this.current});
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.warm300,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Icon(Icons.speed_rounded, color: AppColors.gold600),
+                const SizedBox(width: 8),
+                Text(
+                  'سرعت پخش',
+                  style: GoogleFonts.vazirmatn(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.dark900,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
+              children: [
+                for (final speed in _kSpeeds)
+                  _SpeedOption(
+                    speed: speed,
+                    selected: speed == current,
+                    onTap: () => Navigator.of(context).pop(speed),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SpeedOption extends StatelessWidget {
+  final double speed;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _SpeedOption({
+    required this.speed,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        width: 76,
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          gradient: selected ? AppColors.goldGradient : null,
+          color: selected ? null : AppColors.creamDark,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: selected ? AppColors.goldGlow : null,
+        ),
+        child: Column(
+          children: [
+            Text(
+              _speedLabel(speed),
+              textDirection: TextDirection.ltr,
+              style: GoogleFonts.vazirmatn(
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+                color: selected ? Colors.white : AppColors.dark900,
+              ),
+            ),
+            Text(
+              speed == 1 ? 'عادی' : (speed < 1 ? 'آهسته' : 'سریع'),
+              style: GoogleFonts.vazirmatn(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: selected
+                    ? Colors.white.withValues(alpha: 0.9)
+                    : AppColors.warm400,
+              ),
+            ),
+          ],
         ),
       ),
     );

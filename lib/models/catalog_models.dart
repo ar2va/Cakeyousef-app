@@ -365,3 +365,50 @@ List<CourseLesson> _lessonItems(dynamic raw) {
   }
   return out;
 }
+
+/// Home hero slide from `GET /api/content/sliders`.
+class HomeSlideDto {
+  final String id;
+  final String imageUrl;
+  final String alt;
+  final String eyebrow;
+  final String title;
+  final String ctaLabel;
+  final String ctaHref;
+
+  const HomeSlideDto({
+    required this.id,
+    required this.imageUrl,
+    required this.alt,
+    required this.eyebrow,
+    required this.title,
+    required this.ctaLabel,
+    required this.ctaHref,
+  });
+
+  factory HomeSlideDto.fromJson(Map<String, dynamic> json) {
+    final id = '${json['id'] ?? ''}';
+    final src = ApiConfig.mediaUrl(
+      json['src']?.toString() ?? json['image']?.toString(),
+    );
+    final cta = json['cta'];
+    String label = '';
+    String href = '';
+    if (cta is Map) {
+      label = cta['label']?.toString().trim() ?? '';
+      href = cta['href']?.toString().trim() ?? '';
+    }
+    return HomeSlideDto(
+      id: id.isEmpty ? src : id,
+      imageUrl: src,
+      alt: json['alt']?.toString().trim() ?? '',
+      eyebrow: json['eyebrow']?.toString().trim() ?? '',
+      title: json['title']?.toString().trim() ?? '',
+      ctaLabel: label,
+      ctaHref: href,
+    );
+  }
+
+  bool get hasImage => imageUrl.isNotEmpty;
+  bool get hasCta => ctaHref.isNotEmpty;
+}

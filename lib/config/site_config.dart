@@ -1,17 +1,14 @@
 class SiteConfig {
   static const siteUrl = 'https://www.cakeyousef.ir';
 
-  /// GitHub repo used for in-app updates via Releases.
-  /// Repository must be public so users can read releases and download APK.
-  static const githubOwner = 'Pouya-Mohammadi-Parsa';
-  static const githubRepo = 'cakeyousef';
+  /// Host used for in-app APK updates.
+  static const apkHostUrl = 'https://dl.cakeyousef.com';
 
-  /// Latest published release (non-draft, non-prerelease).
-  static const githubLatestReleaseUrl =
-      'https://api.github.com/repos/$githubOwner/$githubRepo/releases/latest';
+  /// Direct APK download (overwrite this file on each release).
+  static const apkDownloadUrl = '$apkHostUrl/apk/cakeyousef.apk';
 
-  /// Public fallback JSON (useful if GitHub API is unreachable).
-  static const appVersionUrl = '$siteUrl/app-version.json';
+  /// Public version manifest on the same host.
+  static const appVersionUrl = '$apkHostUrl/apk/app-version.json';
 
   static String courseCheckoutUrl(String? slug) {
     if (slug == null || slug.isEmpty) return siteUrl;

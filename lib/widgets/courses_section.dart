@@ -5,6 +5,7 @@ import '../state/courses_repository.dart';
 import '../theme/app_colors.dart';
 import '../utils/app_nav.dart';
 import 'course_card.dart';
+import 'home_pair_slider.dart';
 import 'section_header.dart';
 
 class PopularCoursesSection extends StatefulWidget {
@@ -84,16 +85,12 @@ class _PopularCoursesSectionState extends State<PopularCoursesSection> {
                 ),
               )
             else
-              SizedBox(
-                height: 420,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: courses.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 16),
-                  itemBuilder: (context, index) =>
-                      CourseCard(course: courses[index]),
-                ),
+              HomePairSlider(
+                itemCount: courses.length,
+                height: 278,
+                autoPlay: true,
+                itemBuilder: (context, index) =>
+                    CourseCard(course: courses[index]),
               ),
           ],
         );

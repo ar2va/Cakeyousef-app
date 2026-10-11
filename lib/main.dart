@@ -13,6 +13,8 @@ Future<void> main() async {
   // Keep runtime fetch as fallback; theme already uses bundled Vazirmatn.
   GoogleFonts.config.allowRuntimeFetching = true;
   await ThemeController.instance.restore();
+  // Layouts are phone-portrait; the course player unlocks rotation itself.
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   _applySystemUi(ThemeController.instance.isDark);
   runApp(const CakeAcademyApp());
 }

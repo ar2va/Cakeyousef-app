@@ -8,6 +8,7 @@ import '../services/version_checker.dart';
 import '../state/auth_session.dart';
 import '../state/courses_repository.dart';
 import '../state/products_repository.dart';
+import '../state/sliders_repository.dart';
 import '../state/theme_controller.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_fonts.dart';
@@ -42,6 +43,7 @@ class _SplashScreenState extends State<SplashScreen>
       AuthSession.instance.restore(),
       ProductsRepository.instance.load(),
       CoursesRepository.instance.load(),
+      SlidersRepository.instance.load(),
       Future<void>.delayed(const Duration(milliseconds: 450)),
     ]);
     if (!mounted) return;

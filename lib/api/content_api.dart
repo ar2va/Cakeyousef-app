@@ -8,6 +8,19 @@ class ContentApi {
   ContentApi({ApiClient? client}) : _client = client ?? ApiClient();
   final ApiClient _client;
 
+  /// GET /api/content/sliders — home hero banners.
+  Future<List<HomeSlideDto>> fetchSliders() async {
+    final body = await _client.get('${ApiConfig.host}/api/content/sliders');
+    final raw = body['slides'] ?? body['sliders'];
+    if (raw is! List) return const [];
+
+    return raw
+        .whereType<Map>()
+        .map((e) => HomeSlideDto.fromJson(Map<String, dynamic>.from(e)))
+        .where((s) => s.hasImage)
+        .toList(growable: false);
+  }
+
   /// GET /api/content/stories (not under /api/v1).
   Future<List<StoryItem>> fetchStories() async {
     final body = await _client.get('${ApiConfig.host}/api/content/stories');
