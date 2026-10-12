@@ -6,8 +6,8 @@ class SiteConfig {
 
   /// GitHub repo used for in-app updates via Releases.
   /// Repository must be public so users can read releases and download APK.
-  static const githubOwner = 'Pouya-Mohammadi-Parsa';
-  static const githubRepo = 'cakeyousef';
+  static const githubOwner = 'ar2va';
+  static const githubRepo = 'Cakeyousef-app';
 
   /// Latest published release (non-draft, non-prerelease).
   static const githubLatestReleaseUrl =

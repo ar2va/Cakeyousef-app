@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://www.cakeyousef.ir"><img src="https://img.shields.io/badge/Website-cakeyousef.ir-D4A843?style=flat-square" alt="Website" /></a>
-  <a href="https://github.com/Pouya-Mohammadi-Parsa/cakeyousef/releases/latest"><img src="https://img.shields.io/github/v/release/Pouya-Mohammadi-Parsa/cakeyousef?style=flat-square&color=B8912E" alt="Latest release" /></a>
+  <a href="https://github.com/ar2va/Cakeyousef-app/releases/latest"><img src="https://img.shields.io/github/v/release/ar2va/Cakeyousef-app?style=flat-square&color=B8912E" alt="Latest release" /></a>
   <img src="https://img.shields.io/badge/Flutter-3.x-02569B?style=flat-square&logo=flutter&logoColor=white" alt="Flutter" />
   <img src="https://img.shields.io/badge/Platform-Android%20%7C%20iOS-green?style=flat-square" alt="Platform" />
 </p>
@@ -25,7 +25,7 @@
 | | |
 |---|---|
 | **وب‌سایت** | [www.cakeyousef.ir](https://www.cakeyousef.ir) |
-| **آخرین نسخه** | [Releases](https://github.com/Pouya-Mohammadi-Parsa/cakeyousef/releases/latest) |
+| **آخرین نسخه** | [Releases](https://github.com/ar2va/Cakeyousef-app/releases/latest) |
 | **پکیج** | `com.cakeyousef.cakeyousef` |
 
 ---
@@ -71,8 +71,8 @@ flutter doctor
 ## راه‌اندازی
 
 ```bash
-git clone https://github.com/Pouya-Mohammadi-Parsa/cakeyousef.git
-cd cakeyousef
+git clone https://github.com/ar2va/Cakeyousef-app.git
+cd Cakeyousef-app
 flutter pub get
 flutter run
 ```
@@ -136,7 +136,7 @@ flutter build ipa --release
 
 ## انتشار نسخه و آپدیت داخل اپ
 
-ریپو باید **Public** باشد تا اپ بدون توکن بتواند آخرین Release را بخواند.
+ریپوی نسخه باید **Public** باشد تا اپ بدون توکن بتواند آخرین Release را بخواند: [ar2va/Cakeyousef-app](https://github.com/ar2va/Cakeyousef-app).
 
 1. نسخه را در `pubspec.yaml` بالا ببرید، مثلاً:
    ```yaml
