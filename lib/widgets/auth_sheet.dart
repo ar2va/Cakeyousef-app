@@ -7,7 +7,7 @@ import '../services/deep_link_service.dart';
 import '../state/auth_session.dart';
 import '../theme/app_colors.dart';
 
-enum AuthSheetMode { browser, password }
+enum AuthSheetMode { browser, password, register }
 
 Future<void> showAuthSheet(
   BuildContext context, {
@@ -43,10 +43,14 @@ class _AuthSheetState extends State<_AuthSheet> {
   final _password = TextEditingController();
   final _api = AuthApi();
 
+  bool get _isBrowserFlow =>
+      _mode == AuthSheetMode.browser || _mode == AuthSheetMode.register;
+
   @override
   void initState() {
     super.initState();
     _mode = widget.initialMode;
+    AuthSession.instance.clearAuthError();
     AuthSession.instance.addListener(_onSession);
   }
 
@@ -77,14 +81,17 @@ class _AuthSheetState extends State<_AuthSheet> {
     }
   }
 
-  Future<void> _openBrowserLogin() async {
+  Future<void> _openBrowserLogin({bool register = false}) async {
     setState(() {
       _busy = true;
       _error = null;
       _waitingBrowser = false;
     });
+    AuthSession.instance.clearAuthError();
     try {
-      final url = await DeepLinkService.instance.resolveAuthorizeUrl();
+      final url = await DeepLinkService.instance.resolveAuthorizeUrl(
+        register: register || _mode == AuthSheetMode.register,
+      );
       final uri = Uri.parse(url);
       final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
       if (!ok) {
@@ -150,7 +157,11 @@ class _AuthSheetState extends State<_AuthSheet> {
             ),
             const SizedBox(height: 18),
             Text(
-              _mode == AuthSheetMode.browser ? 'ورود به حساب' : 'ورود با رمز',
+              _mode == AuthSheetMode.register
+                  ? 'ثبت‌نام'
+                  : _mode == AuthSheetMode.browser
+                      ? 'ورود به حساب'
+                      : 'ورود با رمز',
               textAlign: TextAlign.center,
               style: GoogleFonts.vazirmatn(
                 fontSize: 18,
@@ -160,8 +171,10 @@ class _AuthSheetState extends State<_AuthSheet> {
             ),
             const SizedBox(height: 8),
             Text(
-              _mode == AuthSheetMode.browser
-                  ? 'ورود، ثبت‌نام و بازیابی رمز از طریق سایت انجام می‌شود'
+              _isBrowserFlow
+                  ? (_mode == AuthSheetMode.register
+                      ? 'ثبت‌نام در سایت انجام می‌شود و سپس به اپ برمی‌گردید'
+                      : 'ورود، ثبت‌نام و بازیابی رمز از طریق سایت انجام می‌شود')
                   : 'شماره موبایل یا ایمیل و رمز عبور را وارد کنید',
               textAlign: TextAlign.center,
               style: GoogleFonts.vazirmatn(
@@ -184,10 +197,10 @@ class _AuthSheetState extends State<_AuthSheet> {
               ),
               const SizedBox(height: 10),
             ],
-            if (_mode == AuthSheetMode.browser) ...[
+            if (_isBrowserFlow) ...[
               if (_waitingBrowser) ...[
                 Text(
-                  'پس از ورود در مرورگر، به‌طور خودکار به اپ برمی‌گردید.',
+                  'پس از ورود موفق در مرورگر، به‌طور خودکار به اپ برمی‌گردید.',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.vazirmatn(
                     fontSize: 13,
@@ -201,7 +214,11 @@ class _AuthSheetState extends State<_AuthSheet> {
               SizedBox(
                 height: 50,
                 child: FilledButton.icon(
-                  onPressed: _busy ? null : _openBrowserLogin,
+                  onPressed: _busy
+                      ? null
+                      : () => _openBrowserLogin(
+                            register: _mode == AuthSheetMode.register,
+                          ),
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.gold600,
                     shape: RoundedRectangleBorder(
@@ -217,11 +234,18 @@ class _AuthSheetState extends State<_AuthSheet> {
                             color: Colors.white,
                           ),
                         )
-                      : const Icon(Icons.login_rounded, size: 22),
+                      : Icon(
+                          _mode == AuthSheetMode.register
+                              ? Icons.person_add_alt_1_rounded
+                              : Icons.login_rounded,
+                          size: 22,
+                        ),
                   label: Text(
                     _waitingBrowser
                         ? 'باز کردن مجدد مرورگر'
-                        : 'ورود / ثبت‌نام در مرورگر',
+                        : (_mode == AuthSheetMode.register
+                            ? 'ثبت‌نام در مرورگر'
+                            : 'ورود / ثبت‌نام در مرورگر'),
                     style: GoogleFonts.vazirmatn(
                       fontWeight: FontWeight.w900,
                       fontSize: 14,
@@ -230,19 +254,34 @@ class _AuthSheetState extends State<_AuthSheet> {
                 ),
               ),
               const SizedBox(height: 8),
-              TextButton(
-                onPressed: _busy
-                    ? null
-                    : () => setState(() {
-                          _mode = AuthSheetMode.password;
-                          _error = null;
-                          _waitingBrowser = false;
-                        }),
-                child: Text(
-                  'ورود مستقیم با رمز عبور',
-                  style: GoogleFonts.vazirmatn(fontWeight: FontWeight.w700),
+              if (_mode == AuthSheetMode.browser)
+                TextButton(
+                  onPressed: _busy
+                      ? null
+                      : () => setState(() {
+                            _mode = AuthSheetMode.password;
+                            _error = null;
+                            _waitingBrowser = false;
+                          }),
+                  child: Text(
+                    'ورود مستقیم با رمز عبور',
+                    style: GoogleFonts.vazirmatn(fontWeight: FontWeight.w700),
+                  ),
+                )
+              else
+                TextButton(
+                  onPressed: _busy
+                      ? null
+                      : () => setState(() {
+                            _mode = AuthSheetMode.browser;
+                            _error = null;
+                            _waitingBrowser = false;
+                          }),
+                  child: Text(
+                    'بازگشت به ورود',
+                    style: GoogleFonts.vazirmatn(fontWeight: FontWeight.w700),
+                  ),
                 ),
-              ),
             ] else ...[
               TextField(
                 controller: _identifier,

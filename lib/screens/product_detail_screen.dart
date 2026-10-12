@@ -332,7 +332,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     child: GestureDetector(
                       onTap: !product.inStock
                           ? null
-                          : () => checkoutProductOnWebsite(
+                          : () => buyProduct(
                                 context,
                                 productId: product.id,
                               ),

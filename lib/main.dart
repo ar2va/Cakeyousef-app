@@ -4,15 +4,19 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'screens/splash_screen.dart';
+import 'services/deep_link_service.dart';
 import 'state/theme_controller.dart';
 import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
+import 'utils/app_messenger.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Keep runtime fetch as fallback; theme already uses bundled Vazirmatn.
   GoogleFonts.config.allowRuntimeFetching = true;
   await ThemeController.instance.restore();
+  // Catch cakeyousef://auth before splash finishes restoring session.
+  await DeepLinkService.instance.start();
   // Layouts are phone-portrait; the course player unlocks rotation itself.
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   _applySystemUi(ThemeController.instance.isDark);
@@ -69,6 +73,7 @@ class _CakeAcademyAppState extends State<CakeAcademyApp>
     final theme = ThemeController.instance;
     return MaterialApp(
       title: 'آکادمی کیک یوسف',
+      scaffoldMessengerKey: appMessengerKey,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,

@@ -74,9 +74,9 @@ class AuthApi {
   AuthApi({ApiClient? client}) : _client = client ?? ApiClient();
   final ApiClient _client;
 
-  /// Option A — authorize URL for browser / Custom Tab login.
+  /// Authorize URL for browser / Custom Tab login.
   ///
-  /// Tries guide endpoint first; falls back to `/app-login` (works today).
+  /// Tries Nest guide endpoint first; falls back to `/app-login`.
   Future<String> fetchAuthorizeUrl({
     String redirectUri = ApiConfig.authRedirectUri,
   }) async {
@@ -95,54 +95,32 @@ class AuthApi {
     return ApiConfig.appLoginUrl(redirectUri: redirectUri);
   }
 
-  /// Option A — exchange one-time deep-link code for Bearer token.
+  /// Exchange one-time deep-link code for Bearer token.
   Future<AuthLoginResult> exchangeToken(String code) async {
     final trimmed = code.trim();
     if (trimmed.isEmpty) {
       throw const ApiException('کد ورود نامعتبر است');
     }
 
-    // Prefer documented mobile API, then legacy `/api/auth` path.
-    ApiException? lastError;
-    for (final path in <String>[
+    final body = await _client.post(
       '${ApiConfig.authBaseUrl}/auth/token-exchange',
-      '${ApiConfig.baseUrl}/auth/token-exchange',
-    ]) {
-      try {
-        final body = await _client.post(path, body: {'code': trimmed});
-        return AuthLoginResult.fromJson(body);
-      } on ApiException catch (e) {
-        lastError = e;
-        debugPrint('token-exchange failed at $path: $e');
-      }
-    }
-    throw lastError ??
-        const ApiException(
-          'تبادل کد ورود در دسترس نیست؛ سرویس /api/v1 را روی سرور فعال کنید',
-        );
+      body: {'code': trimmed},
+    );
+    return AuthLoginResult.fromJson(body);
   }
 
-  /// Option B — direct login with phone/email + password.
+  /// Direct login with phone/email + password (optional, no browser).
   Future<AuthLoginResult> login({
     required String identifier,
     required String password,
   }) async {
-    ApiException? lastError;
-    for (final path in <String>[
+    final body = await _client.post(
       '${ApiConfig.authBaseUrl}/auth/login',
-      '${ApiConfig.baseUrl}/auth/login',
-    ]) {
-      try {
-        final body = await _client.post(path, body: {
-          'identifier': identifier.trim(),
-          'password': password,
-        });
-        return AuthLoginResult.fromJson(body);
-      } on ApiException catch (e) {
-        lastError = e;
-        debugPrint('login failed at $path: $e');
-      }
-    }
-    throw lastError ?? const ApiException('ورود ناموفق بود');
+      body: {
+        'identifier': identifier.trim(),
+        'password': password,
+      },
+    );
+    return AuthLoginResult.fromJson(body);
   }
 }

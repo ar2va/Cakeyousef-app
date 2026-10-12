@@ -55,7 +55,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _AuthButtons(
                 onLogin: () => showAuthSheet(context),
                 onRegister: () =>
-                    showAuthSheet(context, mode: AuthSheetMode.browser),
+                    showAuthSheet(context, mode: AuthSheetMode.register),
               ),
               const SizedBox(height: 16),
             ],

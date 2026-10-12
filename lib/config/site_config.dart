@@ -28,7 +28,7 @@ class SiteConfig {
   static String productCheckoutUrl(String? id) {
     if (id == null || id.isEmpty) return '$siteUrl/shop';
     return Uri.parse(siteUrl)
-        .replace(pathSegments: ['product', id])
+        .replace(pathSegments: ['shop', id])
         .toString();
   }
 

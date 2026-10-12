@@ -7,6 +7,7 @@ import '../api/account_api.dart';
 import '../api/api_client.dart';
 import '../api/auth_api.dart';
 import '../models/account_models.dart';
+import '../services/secure_token_store.dart';
 import '../utils/format_utils.dart';
 
 /// Auth session: login token + account area (profile / dashboard / checkout).
@@ -16,8 +17,6 @@ class AuthSession extends ChangeNotifier {
   }
   static final AuthSession instance = AuthSession._();
 
-  static const _tokenKey = 'auth_token';
-  static const _expiresAtKey = 'auth_expires_at';
   static const _userIdKey = 'auth_user_id';
   static const _nameKey = 'auth_name';
   static const _phoneKey = 'auth_phone';
@@ -26,6 +25,7 @@ class AuthSession extends ChangeNotifier {
   static const _userTypeKey = 'auth_user_type';
 
   final _accountApi = AccountApi();
+  final _tokenStore = SecureTokenStore.instance;
 
   String? token;
   DateTime? expiresAt;
@@ -60,20 +60,17 @@ class AuthSession extends ChangeNotifier {
   String get walletFa => formatPriceFa(wallet);
 
   Future<void> restore() async {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString(_tokenKey);
+    final saved = await _tokenStore.readToken();
     if (saved == null || saved.isEmpty) return;
 
-    final expiresMs = prefs.getInt(_expiresAtKey);
-    if (expiresMs != null) {
-      expiresAt = DateTime.fromMillisecondsSinceEpoch(expiresMs);
-      if (DateTime.now().isAfter(expiresAt!)) {
-        await logout();
-        return;
-      }
+    expiresAt = await _tokenStore.readExpiresAt();
+    if (expiresAt != null && DateTime.now().isAfter(expiresAt!)) {
+      await logout();
+      return;
     }
 
     token = saved;
+    final prefs = await SharedPreferences.getInstance();
     userId = prefs.getString(_userIdKey) ?? '';
     name = prefs.getString(_nameKey) ?? '';
     phone = prefs.getString(_phoneKey) ?? '';
@@ -105,13 +102,10 @@ class AuthSession extends ChangeNotifier {
     _applyUser(result.user);
     authError = null;
 
+    await _tokenStore.writeToken(result.token);
+    await _tokenStore.writeExpiresAt(expiresAt);
+
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_tokenKey, result.token);
-    if (expiresAt != null) {
-      await prefs.setInt(_expiresAtKey, expiresAt!.millisecondsSinceEpoch);
-    } else {
-      await prefs.remove(_expiresAtKey);
-    }
     await _persistProfileFields(prefs);
     notifyListeners();
 
@@ -318,9 +312,8 @@ class AuthSession extends ChangeNotifier {
     accountLoading = false;
     accountError = null;
     authError = null;
+    await _tokenStore.clear();
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_tokenKey);
-    await prefs.remove(_expiresAtKey);
     await prefs.remove(_userIdKey);
     await prefs.remove(_nameKey);
     await prefs.remove(_phoneKey);

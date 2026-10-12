@@ -7,8 +7,9 @@ import '../api/api_client.dart';
 import '../api/api_config.dart';
 import '../api/auth_api.dart';
 import '../state/auth_session.dart';
+import '../utils/app_messenger.dart';
 
-/// Handles `cakeyousef://auth` (and later payment) deep links.
+/// Handles `cakeyousef://auth` (login) and `cakeyousef://payment` (ZarinPal return) deep links.
 class DeepLinkService {
   DeepLinkService._();
   static final DeepLinkService instance = DeepLinkService._();
@@ -60,7 +61,7 @@ class DeepLinkService {
       case 'auth':
         await _handleAuth(uri);
       case 'payment':
-        debugPrint('Payment deep link: $uri');
+        await _handlePayment(uri);
       default:
         debugPrint('Unhandled deep link: $uri');
     }
@@ -81,19 +82,17 @@ class DeepLinkService {
 
     _handlingAuth = true;
     _lastHandledCode = code;
+    AuthSession.instance.clearAuthError();
     try {
       debugPrint('DeepLinkService: exchanging code…');
       final result = await _authApi.exchangeToken(code);
       await AuthSession.instance.applyLogin(result);
       debugPrint('DeepLinkService: login applied');
+      showAppMessage('ورود موفق بود', success: true);
     } on ApiException catch (e) {
       debugPrint('Auth exchange failed: $e');
       _lastHandledCode = null; // allow retry with a fresh browser login
-      AuthSession.instance.setAuthError(
-        e.message.contains('فعال نیست') || e.message.contains('HTML')
-            ? 'سرویس تبادل توکن (/api/v1/auth) روی سرور فعال نیست'
-            : e.message,
-      );
+      AuthSession.instance.setAuthError(e.message);
     } catch (e) {
       debugPrint('Auth exchange error: $e');
       _lastHandledCode = null;
@@ -103,8 +102,50 @@ class DeepLinkService {
     }
   }
 
+  String? _lastHandledPayment;
+
+  /// `cakeyousef://payment?status=success|failed&orderId=…&ref=…`
+  /// sent by the site's ZarinPal callback after the bank round-trip.
+  Future<void> _handlePayment(Uri uri) async {
+    final params = uri.queryParameters;
+    final status = (params['status'] ?? params['payment'] ?? '').trim();
+    final orderId = params['orderId'] ?? '';
+    final key = '$status:$orderId:${params['ref'] ?? ''}';
+    if (_lastHandledPayment == key) return;
+    _lastHandledPayment = key;
+
+    if (status == 'success') {
+      final ref = params['ref']?.trim() ?? '';
+      showAppMessage(
+        ref.isEmpty
+            ? 'پرداخت موفق بود؛ سفارش شما ثبت شد'
+            : 'پرداخت موفق بود — کد پیگیری: $ref',
+        success: true,
+        duration: const Duration(seconds: 6),
+      );
+      // New enrolments / orders appear in My Courses and Profile.
+      await AuthSession.instance.refreshAccount().catchError((_) {});
+    } else {
+      final reason = params['reason'] ?? '';
+      showAppMessage(
+        reason == 'canceled'
+            ? 'پرداخت لغو شد'
+            : 'پرداخت انجام نشد. اگر مبلغی کسر شده، طبق روال بانکی برمی‌گردد.',
+        error: true,
+        duration: const Duration(seconds: 6),
+      );
+    }
+  }
+
   /// Authorize URL for Option A (open with url_launcher / Custom Tabs).
-  Future<String> resolveAuthorizeUrl() async {
-    return ApiConfig.appLoginUrl(redirectUri: ApiConfig.authRedirectUri);
+  Future<String> resolveAuthorizeUrl({bool register = false}) async {
+    if (register) {
+      return ApiConfig.appRegisterUrl(
+        redirectUri: ApiConfig.authRedirectUri,
+      );
+    }
+    return _authApi.fetchAuthorizeUrl(
+      redirectUri: ApiConfig.authRedirectUri,
+    );
   }
 }

@@ -131,11 +131,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
   }
 
   Future<void> _buy() {
-    return checkoutCourseOnWebsite(
-      context,
-      slug: course.slug,
-      fallbackUrl: course.siteUrl,
-    );
+    return buyCourse(context, courseId: course.id ?? '');
   }
 
   List<_FeatureSpec> get _features {
